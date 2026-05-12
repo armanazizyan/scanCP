@@ -6,47 +6,48 @@
 \usage{
 decompose_signal_core(
   y,
-  diff,
+  detector,
   w = 200,
   ma_window = 100,
   right_tail_cutoff = 0.95,
   left_tail_cutoff = 0.6,
-  threshold = "auto"
+  threshold = "auto",
+  use_abs_det = TRUE,
+  minpeakdistance = NULL,
+  circular = FALSE,
+  margin = NULL
 )
 }
 \arguments{
 \item{y}{Numeric vector. Original signal.}
 
-\item{diff}{Numeric vector. Detector statistic.}
+\item{detector}{Numeric vector. Detector statistic.}
 
 \item{w}{Integer. Window size used in detector.}
 
-\item{ma_window}{Integer. Moving-average window.}
+\item{ma_window}{Integer. Moving-average window for smoothing.}
 
 \item{right_tail_cutoff}{Numeric. ECDF upper cutoff.}
 
 \item{left_tail_cutoff}{Numeric. ECDF lower cutoff.}
 
 \item{threshold}{"auto" or numeric ECDF threshold.}
+
+\item{use_abs_det}{Logical. Whether to use abs(detector). Default TRUE.}
+
+\item{minpeakdistance}{Integer. Minimum distance between peaks.
+Default = 2 * w.}
+
+\item{circular}{Logical. Whether moving average wraps around.}
+
+\item{margin}{Integer. Local refinement margin. Default = floor(w/2).}
 }
 \value{
-A list containing:
-\describe{
-\item{corrected_signal}{Signal after piecewise correction.}
-\item{piecewise_constant}{Piecewise constant component.}
-\item{raw_correction}{Correction vector.}
-\item{changepoints}{Corrected changepoint indices.}
-\item{changepoint_ecdf}{ECDF values of selected changepoints.}
-\item{shift_values}{Estimated shifts.}
-\item{p_values}{Wilcoxon p-values.}
-\item{smoothed_detector}{Smoothed detector.}
-\item{ecdf_spacing}{Spacing curve.}
-\item{threshold_used}{Final threshold.}
-\item{local_maxima}{Local maxima matrix.}
-}
+A list with corrected signal, piecewise constant component,
+changepoints, ECDF values, spacing curve (if auto), etc.
 }
 \description{
-Performs the changepoint extraction, ECDF thresholding, spacing-curve
-spike selection, and local refinement. Produces the corrected signal
-and piecewise-constant component, but does NOT fit the global MLP.
+Extracts changepoints from a detector statistic using ECDF thresholding
+and local refinement. Produces corrected signal and piecewise-constant
+component. Does NOT fit the global MLP smoother.
 }

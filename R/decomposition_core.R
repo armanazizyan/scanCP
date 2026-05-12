@@ -1,71 +1,97 @@
 #' Core Signal Decomposition (Changepoints + Piecewise Correction)
 #'
 #' @description
-#' Performs the changepoint extraction, ECDF thresholding, spacing-curve
-#' spike selection, and local refinement. Produces the corrected signal
-#' and piecewise-constant component, but does NOT fit the global MLP.
+#' Extracts changepoints from a detector statistic using ECDF thresholding
+#' and local refinement. Produces corrected signal and piecewise-constant
+#' component. Does NOT fit the global MLP smoother.
 #'
 #' @param y Numeric vector. Original signal.
-#' @param diff Numeric vector. Detector statistic.
+#' @param detector Numeric vector. Detector statistic.
 #' @param w Integer. Window size used in detector.
-#' @param ma_window Integer. Moving-average window.
+#' @param ma_window Integer. Moving-average window for smoothing.
 #' @param right_tail_cutoff Numeric. ECDF upper cutoff.
 #' @param left_tail_cutoff Numeric. ECDF lower cutoff.
 #' @param threshold "auto" or numeric ECDF threshold.
+#' @param use_abs_det Logical. Whether to use abs(detector). Default TRUE.
+#' @param minpeakdistance Integer. Minimum distance between peaks.
+#'        Default = 2 * w.
+#' @param circular Logical. Whether moving average wraps around.
+#' @param margin Integer. Local refinement margin. Default = floor(w/2).
 #'
-#' @return A list containing:
-#' \describe{
-#'   \item{corrected_signal}{Signal after piecewise correction.}
-#'   \item{piecewise_constant}{Piecewise constant component.}
-#'   \item{raw_correction}{Correction vector.}
-#'   \item{changepoints}{Corrected changepoint indices.}
-#'   \item{changepoint_ecdf}{ECDF values of selected changepoints.}
-#'   \item{shift_values}{Estimated shifts.}
-#'   \item{p_values}{Wilcoxon p-values.}
-#'   \item{smoothed_detector}{Smoothed detector.}
-#'   \item{ecdf_spacing}{Spacing curve.}
-#'   \item{threshold_used}{Final threshold.}
-#'   \item{local_maxima}{Local maxima matrix.}
-#' }
+#' @return A list with corrected signal, piecewise constant component,
+#'         changepoints, ECDF values, spacing curve (if auto), etc.
 #'
 #' @importFrom pracma findpeaks
 #' @importFrom stats ecdf median
 #' @export
 decompose_signal_core <- function(
     y,
-    diff,
+    detector,
     w = 200,
     ma_window = 100,
     right_tail_cutoff = 0.95,
     left_tail_cutoff  = 0.6,
-    threshold = "auto"
+    threshold = "auto",
+    use_abs_det = TRUE,
+    minpeakdistance = NULL,
+    circular = FALSE,
+    margin = NULL
 ) {
+
+  # --- 0. Preprocessing -------------------------------------------------------
+
+  if (use_abs_det)
+    detector <- abs(detector)
 
   n <- length(y)
 
-  # 1. Local maxima of raw detector
-  pre.sm.local <- pracma::findpeaks(diff, minpeakdistance = w)
+  if (is.null(minpeakdistance))
+    minpeakdistance <- 2 * w
 
-  # 2. Smooth detector
-  ma.diff <- as.numeric(ma(diff, ma_window))
-  ma.diff[is.na(ma.diff)] <- 0
+  if (is.null(margin))
+    margin <- floor(w / 2)
 
-  # 3. Local maxima of smoothed detector
-  l.max <- pracma::findpeaks(ma.diff, minpeakdistance = w)
+  # --- 1. Local maxima of raw detector ---------------------------------------
 
-  # 4. ECDF significance
-  f_diff <- stats::ecdf(ma.diff)
-  ecdf_vals <- f_diff(l.max[, 1])
-  l.max <- cbind(l.max, ecdf_vals)
+  raw_peaks <- pracma::findpeaks(detector, minpeakdistance = minpeakdistance)
 
-  # 5. ECDF spacing curve
-  x.diff <- sort(ma.diff)
-  dx <- diff(x.diff)
-  s <- as.numeric(ma(dx, w, circular = FALSE))
-  s[is.na(s)] <- 0
+  # --- 2. Smooth detector -----------------------------------------------------
 
-  # 6. Threshold selection
+  sm.det <- as.numeric(ma(detector, n = ma_window, circular = circular))
+  sm.det[is.na(sm.det)] <- 0
+
+  # --- 3. Local maxima of smoothed detector ----------------------------------
+
+  l.max <- pracma::findpeaks(sm.det, minpeakdistance = minpeakdistance)
+  if (is.null(l.max) || nrow(l.max) == 0) {
+    return(list(
+      corrected_signal   = y,
+      piecewise_constant = rep(0, n),
+      raw_correction     = rep(0, n),
+      changepoints       = integer(0),
+      changepoint_ecdf   = numeric(0),
+      shift_values       = numeric(0),
+      smoothed_detector  = sm.det,
+      ecdf_spacing       = NULL,
+      threshold_used     = NA,
+      local_maxima       = NULL
+    ))
+  }
+
+  # --- 4. ECDF significance ---------------------------------------------------
+
+  f_det <- stats::ecdf(sm.det)
+  ecdf_vals <- f_det(l.max[, 1])
+  l.max <- cbind(l.max, ecdf_vals)  # col 5 = ECDF
+
+  # --- 5. Spacing curve (only if needed) -------------------------------------
+
   if (is.character(threshold) && threshold == "auto") {
+    x.det <- sort(sm.det)
+    dx <- diff(x.det)
+    s <- as.numeric(ma(dx, n = w, circular = circular))
+    s[is.na(s)] <- 0
+
     thr <- select_best_spike(
       s,
       right_tail_cutoff = right_tail_cutoff,
@@ -73,73 +99,65 @@ decompose_signal_core <- function(
     )
   } else if (is.numeric(threshold)) {
     thr <- threshold
+    s <- NULL
   } else {
     stop("threshold must be 'auto' or numeric.")
   }
 
-  # 7. Changepoints
+  # --- 6. Changepoints (raw) --------------------------------------------------
+
   cps_raw <- l.max[l.max[, 5] >= thr, , drop = FALSE]
   cps <- cps_raw[, 2] + w
 
-  # 8. Local correction
-  marg <- w
-  cor.cps <- c()
-  shift.vals <- c()
-  wc.p <- c()
+  # --- 7. Local refinement ----------------------------------------------------
+
+  refined <- c()
+  shifts <- c()
 
   for (cp in sort(cps)) {
 
-    lo <- max(1, cp - marg)
-    hi <- min(n, cp + marg)
+    lo <- max(1, cp - margin)
+    hi <- min(n, cp + margin)
 
     segment <- y[lo:hi]
 
+    # k-means split
     b <- kmeans(segment, centers = 2)
     bsf <- best_split_free(b$cluster)
 
-    corrected_cp <- cp + (marg - bsf$index)
+    corrected_cp <- cp + (margin - bsf$index)
     corrected_cp <- min(max(corrected_cp, 1), n)
-    cor.cps <- c(cor.cps, corrected_cp)
+    refined <- c(refined, corrected_cp)
 
-    w1_start <- max(1, cp - bsf$index)
-    w1_end   <- min(n, cp + marg - bsf$index)
+    # shift estimate
+    left_idx  <- max(1, corrected_cp - margin) : corrected_cp
+    right_idx <- corrected_cp : min(n, corrected_cp + margin)
 
-    w2_start <- max(1, cp + marg - bsf$index)
-    w2_end   <- min(n, cp + 2 * marg - bsf$index)
-
-    shift.vals <- c(
-      shift.vals,
-      stats::median(y[w1_start:w1_end]) - stats::median(y[w2_start:w2_end])
-    )
-
-    wc.p <- c(
-      wc.p,
-      wilcox.test(
-        y[w1_start:w1_end],
-        y[w2_start:w2_end],
-        exact = FALSE
-      )$p.value
+    shifts <- c(
+      shifts,
+      stats::median(y[left_idx]) - stats::median(y[right_idx])
     )
   }
 
-  # 9. Correction vector
-  cps <- cor.cps
+  # --- 8. Build correction vector --------------------------------------------
+
+  cps <- refined
   starts <- cps + 1
   ends <- c(cps[-1], n)
 
   cor.vec <- numeric(n)
-  cumulative.shift.vals <- cumsum(shift.vals)
+  cum.shifts <- cumsum(shifts)
 
   for (i in seq_along(starts)) {
-    cor.vec[starts[i]:ends[i]] <- cumulative.shift.vals[i]
+    cor.vec[starts[i]:ends[i]] <- cum.shifts[i]
   }
 
-  # 10. Apply correction
   new.y <- y + cor.vec
 
-  # 11. Piecewise constant component
+  # --- 9. Piecewise constant component ---------------------------------------
+
   idx_start <- c(1, cps + 1)
-  idx_end <- c(cps, n)
+  idx_end   <- c(cps, n)
 
   step_mean <- numeric(n)
   for (i in seq_along(idx_start)) {
@@ -147,20 +165,22 @@ decompose_signal_core <- function(
       mean((y - new.y)[idx_start[i]:idx_end[i]])
   }
 
+  # --- 10. Return -------------------------------------------------------------
+
   list(
     corrected_signal   = new.y,
     piecewise_constant = step_mean,
     raw_correction     = cor.vec,
     changepoints       = cps,
     changepoint_ecdf   = cps_raw[, 5],
-    shift_values       = shift.vals,
-    p_values           = wc.p,
-    smoothed_detector  = ma.diff,
+    shift_values       = shifts,
+    smoothed_detector  = sm.det,
     ecdf_spacing       = s,
     threshold_used     = thr,
     local_maxima       = l.max
   )
 }
+
 
 
 #' Fit Global MLP and Compute Residual Diagnostics

@@ -2,50 +2,91 @@
 % Please edit documentation in R/scan_CP.R
 \name{scan_cp}
 \alias{scan_cp}
-\title{Full Deep Learning–Based Changepoint Detection Pipeline}
+\title{Deep Learning–Based Changepoint Detection (Core Pipeline)}
 \usage{
 scan_cp(
   y,
   w = 100,
-  mlp_params = list(),
-  detector_params = list(),
-  decomp_params = list(),
-  global_mlp = FALSE,
-  global_params = list()
+  ma_window = w,
+  threshold = "auto",
+  threshold_tails = c(0.6, 0.95),
+  min_cp_distance = 2 * w,
+  margin = floor(w/2),
+  use_abs_det = TRUE,
+  mlp_control = list()
 )
 }
 \arguments{
-\item{y}{Numeric vector. The raw signal.}
+\item{y}{Numeric vector. The raw input signal.}
 
-\item{w}{Integer. Window size for rolling MLPs and detector.}
+\item{w}{Integer. Window size used for rolling MLPs and detector
+construction. Defaults to 100.}
 
-\item{mlp_params}{List of parameters passed to \code{\link[=fit_mlp]{fit_mlp()}}.}
+\item{ma_window}{Integer. Moving-average smoothing window for the
+detector. Defaults to \code{w}.}
 
-\item{detector_params}{List of parameters passed to \code{\link[=calc_detector]{calc_detector()}}.}
+\item{threshold}{Either \code{"auto"} (default) or a numeric ECDF
+threshold for selecting significant peaks.}
 
-\item{decomp_params}{List of parameters passed to \code{\link[=decompose_signal_core]{decompose_signal_core()}}.}
+\item{threshold_tails}{Numeric vector of length 2 giving the
+\code{c(left_tail_cutoff, right_tail_cutoff)} used in automatic
+threshold selection. Defaults to \code{c(0.6, 0.95)}.}
 
-\item{global_mlp}{Logical. Whether to run the optional global smoother.}
+\item{min_cp_distance}{Integer. Minimum distance between detected
+changepoints (peak separation). Defaults to \code{2 * w}.}
 
-\item{global_params}{List of parameters passed to \code{\link[=fit_global_mlp]{fit_global_mlp()}}.}
+\item{margin}{Integer. Local refinement margin around each detected
+changepoint. Defaults to \code{floor(w / 2)}.}
+
+\item{use_abs_det}{Logical. Whether to use \code{abs(detector)} before
+peak detection. Defaults to \code{TRUE}.}
+
+\item{mlp_control}{List of parameters passed to \code{\link{fit_mlp}}
+(e.g., hidden layer sizes, learning rates, iteration limits).}
 }
 \value{
-A list containing:
+A list with the following elements:
 \describe{
-\item{fit_mlp}{Rolling MLP fit results.}
-\item{detector}{Detector statistic.}
-\item{decomposition}{Structural decomposition results.}
-\item{global}{Optional global MLP smoothing results.}
+\item{changepoints}{Vector of detected changepoint locations.}
+\item{detector}{The smoothed detector statistic.}
+\item{fit_mlp}{Rolling-window MLP fit results.}
+\item{decomposition}{Full output from
+\code{\link{decompose_signal_core}} including corrected signal,
+piecewise constant component, ECDF values, spacing curve, and
+refinement details.}
 }
 }
 \description{
-Runs the complete scanCP pipeline:
+Implements the core scanCP changepoint detection pipeline:
 \enumerate{
 \item Rolling-window MLP fitting
-\item Detector computation
-\item Structural decomposition (changepoints + corrected signal)
-\item Optional global MLP smoothing
+\item Detector construction and smoothing
+\item ECDF-based changepoint extraction
+\item Local refinement and piecewise correction
 }
 
-All internal parameters can be passed through structured lists.
+This function performs the full univariate changepoint analysis and
+returns the detected changepoints at the top level for convenience.
+The optional global MLP smoother is intentionally excluded and can be
+added via \code{\link{add_global_mlp}}.
+}
+\details{
+This function is the primary user-facing entry point for univariate
+changepoint detection. It exposes only the most important parameters
+while keeping advanced MLP hyperparameters inside \code{mlp_control}.
+
+The global smoother is intentionally not included here; use
+\code{\link{add_global_mlp}} to attach a global MLP trend estimate.
+}
+\examples{
+\dontrun{
+  set.seed(1)
+  y <- c(rnorm(200, 0, 1),
+         rnorm(200, 3, 1),
+         rnorm(200, -2, 1))
+
+  res <- scan_cp(y, w = 100)
+  res$changepoints
+}
+
 }
