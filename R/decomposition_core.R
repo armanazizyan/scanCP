@@ -1,25 +1,51 @@
 #' Core Signal Decomposition (Changepoints + Piecewise Correction)
 #'
 #' @description
-#' Extracts changepoints from a detector statistic using ECDF thresholding
-#' and local refinement. Produces corrected signal and piecewise-constant
-#' component. Does NOT fit the global MLP smoother.
+#' Extracts changepoints from a detector statistic using ECDF thresholding,
+#' spacing-curve analysis, and local refinement. Produces the corrected
+#' signal and its piecewise-constant component. This function does *not*
+#' perform global MLP smoothing.
 #'
 #' @param y Numeric vector. Original signal.
-#' @param detector Numeric vector. Detector statistic.
-#' @param w Integer. Window size used in detector.
-#' @param ma_window Integer. Moving-average window for smoothing.
-#' @param right_tail_cutoff Numeric. ECDF upper cutoff.
-#' @param left_tail_cutoff Numeric. ECDF lower cutoff.
-#' @param threshold "auto" or numeric ECDF threshold.
-#' @param use_abs_det Logical. Whether to use abs(detector). Default TRUE.
-#' @param minpeakdistance Integer. Minimum distance between peaks.
-#'        Default = 2 * w.
-#' @param circular Logical. Whether moving average wraps around.
-#' @param margin Integer. Local refinement margin. Default = floor(w/2).
+#' @param detector Numeric vector. Detector statistic produced by
+#'   \code{\link{calc_detector}}.
+#' @param w Integer. Window size used in detector construction.
+#' @param ma_window Integer. Moving-average smoothing window for the detector
+#'   and spacing curve. Defaults to \code{w}.
+#' @param right_tail_cutoff Numeric. Upper ECDF cutoff for automatic
+#'   threshold selection. Defaults to \code{0.95}.
+#' @param left_tail_cutoff Numeric. Lower ECDF cutoff for automatic
+#'   threshold selection. Defaults to \code{0.6}.
+#' @param threshold Either \code{"auto"} (default) or a numeric ECDF
+#'   threshold for selecting significant peaks.
+#' @param use_abs_det Logical. Whether to use \code{abs(detector)} before
+#'   peak detection. Defaults to \code{TRUE}.
+#' @param min_cp_distance Integer. Minimum distance between detected peaks.
+#'   Defaults to \code{2 * w}.
+#' @param margin Integer. Local refinement margin around each changepoint.
+#'   Defaults to \code{floor(w / 2)}.
+#' @param circular Logical. Whether moving-average smoothing wraps around.
+#'   Defaults to \code{FALSE}. Typically left unchanged.
 #'
-#' @return A list with corrected signal, piecewise constant component,
-#'         changepoints, ECDF values, spacing curve (if auto), etc.
+#' @return A list containing:
+#' \describe{
+#'   \item{corrected_signal}{The refined, piecewise-corrected signal.}
+#'   \item{piecewise_constant}{Estimated piecewise-constant component.}
+#'   \item{raw_correction}{Cumulative correction vector.}
+#'   \item{changepoints}{Refined changepoint locations.}
+#'   \item{changepoint_ecdf}{ECDF values of selected peaks.}
+#'   \item{shift_values}{Estimated shifts at each changepoint.}
+#'   \item{smoothed_detector}{Smoothed detector statistic.}
+#'   \item{ecdf_spacing}{Spacing-curve values (if \code{threshold = "auto"}).}
+#'   \item{threshold_used}{Final threshold applied.}
+#'   \item{local_maxima}{Matrix of detected local maxima.}
+#' }
+#'
+#' @details
+#' The function identifies local maxima of the smoothed detector, evaluates
+#' their significance using the ECDF of the detector, optionally computes a
+#' spacing curve for automatic threshold selection, and refines each
+#' changepoint using a two-cluster k-means split within a local window.
 #'
 #' @importFrom pracma findpeaks
 #' @importFrom stats ecdf median
@@ -33,7 +59,7 @@ decompose_signal_core <- function(
     left_tail_cutoff  = 0.6,
     threshold = "auto",
     use_abs_det = TRUE,
-    minpeakdistance = NULL,
+    min_cp_distance = NULL,
     circular = FALSE,
     margin = NULL
 ) {
@@ -45,15 +71,15 @@ decompose_signal_core <- function(
 
   n <- length(y)
 
-  if (is.null(minpeakdistance))
-    minpeakdistance <- 2 * w
+  if (is.null(min_cp_distance))
+    min_cp_distance <- 2 * w
 
   if (is.null(margin))
     margin <- floor(w / 2)
 
   # --- 1. Local maxima of raw detector ---------------------------------------
 
-  raw_peaks <- pracma::findpeaks(detector, minpeakdistance = minpeakdistance)
+  # (Removed raw_peaks — unused)
 
   # --- 2. Smooth detector -----------------------------------------------------
 
@@ -62,7 +88,7 @@ decompose_signal_core <- function(
 
   # --- 3. Local maxima of smoothed detector ----------------------------------
 
-  l.max <- pracma::findpeaks(sm.det, minpeakdistance = minpeakdistance)
+  l.max <- pracma::findpeaks(sm.det, minpeakdistance = min_cp_distance)
   if (is.null(l.max) || nrow(l.max) == 0) {
     return(list(
       corrected_signal   = y,
@@ -89,7 +115,7 @@ decompose_signal_core <- function(
   if (is.character(threshold) && threshold == "auto") {
     x.det <- sort(sm.det)
     dx <- diff(x.det)
-    s <- as.numeric(ma(dx, n = w, circular = circular))
+    s <- as.numeric(ma(dx, n = ma_window, circular = circular))
     s[is.na(s)] <- 0
 
     thr <- select_best_spike(
@@ -107,6 +133,22 @@ decompose_signal_core <- function(
   # --- 6. Changepoints (raw) --------------------------------------------------
 
   cps_raw <- l.max[l.max[, 5] >= thr, , drop = FALSE]
+
+  if (nrow(cps_raw) == 0) {
+    return(list(
+      corrected_signal   = y,
+      piecewise_constant = rep(0, n),
+      raw_correction     = rep(0, n),
+      changepoints       = integer(0),
+      changepoint_ecdf   = numeric(0),
+      shift_values       = numeric(0),
+      smoothed_detector  = sm.det,
+      ecdf_spacing       = s,
+      threshold_used     = thr,
+      local_maxima       = l.max
+    ))
+  }
+
   cps <- cps_raw[, 2] + w
 
   # --- 7. Local refinement ----------------------------------------------------
@@ -121,7 +163,6 @@ decompose_signal_core <- function(
 
     segment <- y[lo:hi]
 
-    # k-means split
     b <- kmeans(segment, centers = 2)
     bsf <- best_split_free(b$cluster)
 
@@ -129,7 +170,6 @@ decompose_signal_core <- function(
     corrected_cp <- min(max(corrected_cp, 1), n)
     refined <- c(refined, corrected_cp)
 
-    # shift estimate
     left_idx  <- max(1, corrected_cp - margin) : corrected_cp
     right_idx <- corrected_cp : min(n, corrected_cp + margin)
 
@@ -180,6 +220,7 @@ decompose_signal_core <- function(
     local_maxima       = l.max
   )
 }
+
 
 
 

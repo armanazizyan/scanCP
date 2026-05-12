@@ -13,7 +13,7 @@ decompose_signal_core(
   left_tail_cutoff = 0.6,
   threshold = "auto",
   use_abs_det = TRUE,
-  minpeakdistance = NULL,
+  min_cp_distance = NULL,
   circular = FALSE,
   margin = NULL
 )
@@ -21,33 +21,59 @@ decompose_signal_core(
 \arguments{
 \item{y}{Numeric vector. Original signal.}
 
-\item{detector}{Numeric vector. Detector statistic.}
+\item{detector}{Numeric vector. Detector statistic produced by
+\code{\link{calc_detector}}.}
 
-\item{w}{Integer. Window size used in detector.}
+\item{w}{Integer. Window size used in detector construction.}
 
-\item{ma_window}{Integer. Moving-average window for smoothing.}
+\item{ma_window}{Integer. Moving-average smoothing window for the detector
+and spacing curve. Defaults to \code{w}.}
 
-\item{right_tail_cutoff}{Numeric. ECDF upper cutoff.}
+\item{right_tail_cutoff}{Numeric. Upper ECDF cutoff for automatic
+threshold selection. Defaults to \code{0.95}.}
 
-\item{left_tail_cutoff}{Numeric. ECDF lower cutoff.}
+\item{left_tail_cutoff}{Numeric. Lower ECDF cutoff for automatic
+threshold selection. Defaults to \code{0.6}.}
 
-\item{threshold}{"auto" or numeric ECDF threshold.}
+\item{threshold}{Either \code{"auto"} (default) or a numeric ECDF
+threshold for selecting significant peaks.}
 
-\item{use_abs_det}{Logical. Whether to use abs(detector). Default TRUE.}
+\item{use_abs_det}{Logical. Whether to use \code{abs(detector)} before
+peak detection. Defaults to \code{TRUE}.}
 
-\item{minpeakdistance}{Integer. Minimum distance between peaks.
-Default = 2 * w.}
+\item{min_cp_distance}{Integer. Minimum distance between detected peaks.
+Defaults to \code{2 * w}.}
 
-\item{circular}{Logical. Whether moving average wraps around.}
+\item{circular}{Logical. Whether moving-average smoothing wraps around.
+Defaults to \code{FALSE}. Typically left unchanged.}
 
-\item{margin}{Integer. Local refinement margin. Default = floor(w/2).}
+\item{margin}{Integer. Local refinement margin around each changepoint.
+Defaults to \code{floor(w / 2)}.}
 }
 \value{
-A list with corrected signal, piecewise constant component,
-changepoints, ECDF values, spacing curve (if auto), etc.
+A list containing:
+\describe{
+\item{corrected_signal}{The refined, piecewise-corrected signal.}
+\item{piecewise_constant}{Estimated piecewise-constant component.}
+\item{raw_correction}{Cumulative correction vector.}
+\item{changepoints}{Refined changepoint locations.}
+\item{changepoint_ecdf}{ECDF values of selected peaks.}
+\item{shift_values}{Estimated shifts at each changepoint.}
+\item{smoothed_detector}{Smoothed detector statistic.}
+\item{ecdf_spacing}{Spacing-curve values (if \code{threshold = "auto"}).}
+\item{threshold_used}{Final threshold applied.}
+\item{local_maxima}{Matrix of detected local maxima.}
+}
 }
 \description{
-Extracts changepoints from a detector statistic using ECDF thresholding
-and local refinement. Produces corrected signal and piecewise-constant
-component. Does NOT fit the global MLP smoother.
+Extracts changepoints from a detector statistic using ECDF thresholding,
+spacing-curve analysis, and local refinement. Produces the corrected
+signal and its piecewise-constant component. This function does \emph{not}
+perform global MLP smoothing.
+}
+\details{
+The function identifies local maxima of the smoothed detector, evaluates
+their significance using the ECDF of the detector, optionally computes a
+spacing curve for automatic threshold selection, and refines each
+changepoint using a two-cluster k-means split within a local window.
 }

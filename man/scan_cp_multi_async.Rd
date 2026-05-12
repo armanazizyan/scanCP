@@ -2,50 +2,64 @@
 % Please edit documentation in R/scan_cp_multi_async.R
 \name{scan_cp_multi_async}
 \alias{scan_cp_multi_async}
-\title{Multivariate Asynchronous Changepoint Detection}
+\title{Asynchronous Multivariate Changepoint Detection}
 \usage{
 scan_cp_multi_async(
   Y,
   w = 100,
-  mlp_params = list(),
-  detector_params = list(),
-  decomp_params = list(),
-  global_mlp = FALSE,
-  global_params = list()
+  ma_window = w,
+  threshold = "auto",
+  threshold_tails = c(0.6, 0.95),
+  min_cp_distance = 2 * w,
+  margin = floor(w/2),
+  use_abs_det = TRUE,
+  mlp_control = list()
 )
 }
 \arguments{
-\item{Y}{Numeric matrix of size n × p. Each column is a separate signal.}
+\item{Y}{Numeric matrix (n × p). Each column is a signal dimension.}
 
-\item{w}{Integer. Window size for rolling MLPs and detector.}
+\item{w}{Integer. Window size for rolling MLPs and detector construction.
+Defaults to 100.}
 
-\item{mlp_params}{List of parameters passed to \code{\link[=fit_mlp]{fit_mlp()}}.}
+\item{ma_window}{Integer. Moving-average smoothing window for the detector.
+Defaults to \code{w}.}
 
-\item{detector_params}{List of parameters passed to \code{\link[=calc_detector]{calc_detector()}}.}
+\item{threshold}{Either \code{"auto"} (default) or a numeric ECDF threshold.}
 
-\item{decomp_params}{List of parameters passed to \code{\link[=decompose_signal_core]{decompose_signal_core()}}.}
+\item{threshold_tails}{Numeric vector of length 2 giving
+\code{c(left_tail_cutoff, right_tail_cutoff)} for automatic thresholding.
+Defaults to \code{c(0.6, 0.95)}.}
 
-\item{global_mlp}{Logical. Whether to run the optional global smoother.}
+\item{min_cp_distance}{Integer. Minimum distance between detected
+changepoints. Defaults to \code{2 * w}.}
 
-\item{global_params}{List of parameters passed to \code{\link[=fit_global_mlp]{fit_global_mlp()}}.}
+\item{margin}{Integer. Local refinement margin. Defaults to \code{floor(w/2)}.}
+
+\item{use_abs_det}{Logical. Whether to use \code{abs(detector)} before
+smoothing. Defaults to \code{TRUE}.}
+
+\item{mlp_control}{List of parameters passed to \code{\link{fit_mlp}}.}
 }
 \value{
-A list of length p, where each element contains:
-\describe{
-\item{fit_mlp}{Rolling MLP fit results for that dimension.}
-\item{detector}{Detector statistic for that dimension.}
-\item{decomposition}{Structural decomposition results.}
-\item{global}{Optional global MLP smoothing results.}
-}
+A named list of length \code{p}, where each element is the output
+of \code{\link{scan_cp}} applied to the corresponding column of \code{Y}.
 }
 \description{
-Applies the full univariate scanCP pipeline independently to each
-dimension (column) of a multivariate signal matrix. This corresponds
-to the \emph{asynchronous} changepoint setting, where each dimension may
-have changepoints at different locations.
+Applies the univariate \code{\link{scan_cp}} pipeline independently to
+each column of a multivariate signal. Each dimension is processed
+separately (asynchronously), producing a list of univariate results.
 }
-\details{
-This function simply loops over columns and calls \code{\link[=scan_cp]{scan_cp()}} on each.
-No cross‑dimension information is used. This is appropriate when
-changepoints are \emph{not} synchronized across dimensions.
+\examples{
+\dontrun{
+  Y <- cbind(
+    x1 = c(rnorm(200), rnorm(200, 3)),
+    x2 = c(rnorm(200), rnorm(200, -2))
+  )
+
+  res <- scan_cp_multi_async(Y, w = 100)
+  res$x1$changepoints
+  res$x2$changepoints
+}
+
 }

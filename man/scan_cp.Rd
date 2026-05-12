@@ -9,7 +9,7 @@ scan_cp(
   w = 100,
   ma_window = w,
   threshold = "auto",
-  threshold_tails = c(0.6, 0.95),
+  threshold_tails = c(0.2, 0.95),
   min_cp_distance = 2 * w,
   margin = floor(w/2),
   use_abs_det = TRUE,

@@ -2,47 +2,59 @@
 % Please edit documentation in R/detector.R
 \name{calc_detector}
 \alias{calc_detector}
-\title{Compute the MLP-Based Change Point Detector Statistic}
+\title{Compute the MLP-Based Changepoint Detector Statistic}
 \usage{
-calc_detector(y, fit_mlp_res, w = 100, a = 1, b = 0, scale_01 = FALSE)
+calc_detector(
+  y,
+  fit_mlp_res,
+  w = 100,
+  ma_window = w,
+  use_abs_det = TRUE,
+  a = 1,
+  b = 0,
+  scale_01 = FALSE,
+  circular = FALSE
+)
 }
 \arguments{
 \item{y}{Numeric vector. Original signal.}
 
-\item{fit_mlp_res}{List. Output of \code{\link[=fit_mlp]{fit_mlp()}}, containing:
+\item{fit_mlp_res}{List. Output of \code{\link{fit_mlp}}, containing:
 \itemize{
-\item \code{small} — list of small-window fits
-\item \code{large} — list of large-window fits
+\item \code{small} — list of small-window MLP predictions
+\item \code{large} — list of large-window MLP predictions
 }}
 
-\item{w}{Integer. Window size used in the small MLP.}
+\item{w}{Integer. Window size used for the small-window MLP.}
 
-\item{a}{Weight between ratio (0) and difference (1).}
+\item{ma_window}{Integer. Moving-average smoothing window applied to the
+detector. Defaults to \code{w}.}
 
-\item{b}{Numeric. Small correction added to denominator of ratio statistic.}
-
-\item{scale_01}{Logical. If TRUE, rescales detector to [0,1]}
+\item{use_abs_det}{Logical. Whether to take \code{abs(detector)} before
+smoothing. Defaults to \code{TRUE}.}
 }
 \value{
-A numeric vector of detector values of length \verb{n - 2w}.
+A numeric vector of detector values of length \code{n - 2w}.
 }
 \description{
-Computes a detector statistic using rolling-window MLP fits. The statistic
-combines a \emph{ratio} component and a \emph{difference} component derived from the
-residual sum of squares (RSS) of:
+Computes the hybrid detector statistic used in scanCP. The detector
+combines a \emph{ratio} component and a \emph{difference} component derived from
+the residual sum of squares (RSS) of:
 \itemize{
 \item two adjacent small-window MLP fits (window size \code{w})
 \item one large-window MLP fit (window size \verb{2w})
 }
 
-The detector is used to highlight potential changepoints in the signal.
+The detector highlights locations where the large-window fit performs
+substantially worse than the two small-window fits, indicating a
+potential changepoint.
 }
 \details{
 For each index \code{i}, the detector uses:
 \itemize{
-\item \code{rss1}: RSS of small-window MLP on segment \verb{[i, i+w-1]}
-\item \code{rss2}: RSS of small-window MLP on segment \verb{[i+w, i+2w-1]}
-\item \code{rss.tot}: RSS of large-window MLP on \verb{[i, i+2w-1]}
+\item \code{rss1}: RSS of the small-window MLP on \code{[i, i+w-1]}
+\item \code{rss2}: RSS of the small-window MLP on \code{[i+w, i+2w-1]}
+\item \code{rss.tot}: RSS of the large-window MLP on \code{[i, i+2w-1]}
 }
 
 The ratio component is:
@@ -50,10 +62,18 @@ The ratio component is:
 
 The difference component is:
 \deqn{ rss.tot - rss1 - rss2 }
+
+The final detector is a convex combination:
+\deqn{ (1 - a) \cdot \text{ratio} + a \cdot \text{difference} }
+
+Internal parameters \code{a}, \code{b}, and \code{scale_01} are kept
+fixed at their defaults for simplicity and stability.
 }
 \examples{
-# sim <- simulate_piecewise_signal_idx()
-# fit <- fit_mlp(sim$z, w = 100)
-# d <- calc_detector(sim$z, fit, w = 100)
+\dontrun{
+  fit <- fit_mlp(y, w = 100)
+  det <- calc_detector(y, fit, w = 100)
+  plot(det, type = "l")
+}
 
 }
