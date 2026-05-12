@@ -1,16 +1,31 @@
 Package: scanCP
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Deep Learning–Based Change Point Detection
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Arman", "Azizyan",
+      email = "arman.azizyan@gmail.com",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: Tools for simulating, visualizing, and detecting changepoints 
+    in univariate signals using deep learning and classical statistical 
+    methods. Includes utilities for generating piecewise signals, applying 
+    rolling-window methods, and integrating MLP-based changepoint detection 
+    models.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    plotly,
+    RSNNS,
+    foreach,
+    doSNOW,
+    parallel,
+    pracma,
+    stats,
+    graphics
+
