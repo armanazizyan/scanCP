@@ -96,7 +96,7 @@ scan_cp <- function(
     threshold = threshold,
     right_tail_cutoff = threshold_tails[2],
     left_tail_cutoff  = threshold_tails[1],
-    minpeakdistance = min_cp_distance,
+    min_cp_distance = min_cp_distance,
     margin = margin,
     use_abs_det = use_abs_det
   )
