@@ -4,54 +4,60 @@
 \alias{fit_mlp}
 \title{Fit Rolling MLP Models for Change Point Detection}
 \usage{
-fit_mlp(
-  vec,
-  w = 100,
-  act1 = "Act_Logistic",
-  act2 = "Act_Logistic",
-  lr1 = 0.001,
-  lr2 = 0.001,
-  hl1 = 6,
-  hl2 = 8,
-  ep1 = 1000,
-  ep2 = 2000
-)
+fit_mlp(vec, w = 100, mlp_control = list())
 }
 \arguments{
-\item{vec}{Numeric vector. The original signal.}
+\item{vec}{Numeric vector. The input signal.}
 
-\item{w}{Integer. Window size for the smaller MLP.}
+\item{w}{Integer. Window size for the small-window MLP. The large-window
+MLP automatically uses window size \code{2w}.}
 
-\item{act1, act2}{Character strings. Activation functions for the smaller
-and larger MLPs (RSNNS activation names).}
-
-\item{lr1, lr2}{Numeric. Learning rates for the smaller and larger MLPs.}
-
-\item{hl1, hl2}{Integer. Number of hidden units for the smaller and larger MLPs.}
-
-\item{ep1, ep2}{Integer. Number of training epochs for the smaller and larger MLPs.}
+\item{mlp_control}{A named list of MLP hyperparameters. Any subset may be
+supplied; unspecified values fall back to defaults. Supported fields:
+\describe{
+\item{\code{act1}}{Activation function for the small-window MLP
+(default: \code{"Act_Logistic"}).}
+\item{\code{act2}}{Activation function for the large-window MLP
+(default: \code{"Act_Logistic"}).}
+\item{\code{lr1}}{Learning rate for the small-window MLP
+(default: \code{0.001}).}
+\item{\code{lr2}}{Learning rate for the large-window MLP
+(default: \code{0.001}).}
+\item{\code{hl1}}{Number of hidden units for the small-window MLP
+(default: \code{6}).}
+\item{\code{hl2}}{Number of hidden units for the large-window MLP
+(default: \code{8}).}
+\item{\code{ep1}}{Training epochs for the small-window MLP
+(default: \code{1000}).}
+\item{\code{ep2}}{Training epochs for the large-window MLP
+(default: \code{2000}).}
+}}
 }
 \value{
-A list of two elements:
+A list with two elements:
 \describe{
-\item{small}{List of fitted values for window size \code{w}.}
-\item{large}{List of fitted values for window size \verb{2w}.}
+\item{\code{small}}{List of fitted values for each rolling window of size \code{w}.}
+\item{\code{large}}{List of fitted values for each rolling window of size \code{2w}.}
 }
 }
 \description{
 Fits two multilayer perceptron (MLP) models over rolling windows of a
-univariate signal. The first model uses a window of size \code{w}, and the
-second uses a window of size \verb{2w}. The double-window model captures
-uncertainty across adjacent segments and is used in the detector statistic.
+univariate signal. A small-window MLP (window size \code{w}) captures
+local structure, while a large-window MLP (window size \code{2w})
+captures broader trends. Their residual behavior is used by
+\code{\link{calc_detector}} to construct the changepoint detector.
 
-Parallel computation is used to accelerate rolling-window fitting.
+All MLP hyperparameters are supplied through a unified
+\code{mlp_control} list for consistency with \code{\link{scan_cp}}.
 }
 \details{
 Each rolling window is standardized before fitting. The returned matrices
 contain three columns:
-\itemize{
-\item scaled input \code{x}
+\enumerate{
+\item standardized input \code{x}
 \item fitted values \code{y_hat}
 \item original indices
 }
+
+Parallel computation is used to accelerate rolling-window fitting.
 }
