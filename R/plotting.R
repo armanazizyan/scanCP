@@ -17,6 +17,7 @@
 #' @return A Plotly object.
 #'
 #' @importFrom plotly plot_ly add_lines layout
+#' @importFrom magrittr %>%
 #' @export
 plot_mlp_fits_interactive <- function(
     y,
