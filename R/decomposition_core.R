@@ -48,7 +48,7 @@
 #' changepoint using a two-cluster k-means split within a local window.
 #'
 #' @importFrom pracma findpeaks
-#' @importFrom stats ecdf median
+#' @importFrom stats ecdf median kmeans rnorm
 #' @export
 decompose_signal_core <- function(
     y,

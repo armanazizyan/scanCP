@@ -99,7 +99,7 @@ plot_mlp_fits_interactive <- function(
 
     # Layout with slider placeholder
     plotly::layout(
-      title = "Multiple MLP Fits – Interactive Slider",
+      title = "Multiple MLP Fits - Interactive Slider",
       xaxis = list(title = "Index"),
       yaxis = list(title = "Value"),
       shapes = cp_segments,

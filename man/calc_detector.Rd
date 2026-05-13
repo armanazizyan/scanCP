@@ -4,17 +4,7 @@
 \alias{calc_detector}
 \title{Compute the MLP-Based Changepoint Detector Statistic}
 \usage{
-calc_detector(
-  y,
-  fit_mlp_res,
-  w = 100,
-  ma_window = w,
-  use_abs_det = TRUE,
-  a = 1,
-  b = 0,
-  scale_01 = FALSE,
-  circular = FALSE
-)
+calc_detector(y, fit_mlp_res, w = 100, ma_window = w, use_abs_det = TRUE)
 }
 \arguments{
 \item{y}{Numeric vector. Original signal.}

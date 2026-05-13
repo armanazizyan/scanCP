@@ -58,12 +58,13 @@ calc_detector <- function(
     fit_mlp_res,
     w = 100,
     ma_window = w,
-    use_abs_det = TRUE,
-    a = 1,
-    b = 0,
-    scale_01 = FALSE,
-    circular = FALSE
+    use_abs_det = TRUE
 ) {
+
+  scale_01 = FALSE
+  circular = FALSE
+  a = 1
+  b = 0
 
   # Validate inputs
   if (!is.numeric(y)) stop("y must be numeric.")

@@ -22,7 +22,7 @@
 #'       (default: \code{"Act_Logistic"}).}
 #'     \item{\code{lr1}}{Learning rate for the small-window MLP
 #'       (default: \code{0.001}).}
-#'     \item{\code{lr2}}{Learning rate for the large-window MLP
+#'     \item{\code{lr2}}{Learning learning rate for the large-window MLP
 #'       (default: \code{0.001}).}
 #'     \item{\code{hl1}}{Number of hidden units for the small-window MLP
 #'       (default: \code{6}).}
@@ -33,6 +33,12 @@
 #'     \item{\code{ep2}}{Training epochs for the large-window MLP
 #'       (default: \code{2000}).}
 #'   }
+#'
+#' @param parallel Logical. If \code{TRUE} (default), rolling-window MLPs are
+#'   fitted using parallel computation via \pkg{parallel}, \pkg{foreach},
+#'   and \pkg{doSNOW}. If \code{FALSE}, all computation is performed
+#'   serially. Setting \code{parallel = FALSE} is recommended for CRAN checks
+#'   and for systems where parallel backends are unavailable.
 #'
 #' @return A list with two elements:
 #' \describe{
@@ -49,22 +55,25 @@
 #'   \item original indices
 #' }
 #'
-#' Parallel computation is used to accelerate rolling-window fitting.
+#' When \code{parallel = TRUE}, a cluster is created using
+#' \code{parallel::makeCluster()} and progress bars are displayed via
+#' \pkg{doSNOW}. When \code{parallel = FALSE}, the function falls back to
+#' serial execution using \code{\%do\%}.
 #'
 #' @import RSNNS
 #' @import foreach
 #' @import doSNOW
 #' @import parallel
+#' @importFrom utils modifyList txtProgressBar setTxtProgressBar
 #' @export
 fit_mlp <- function(
     vec,
     w = 100,
-    mlp_control = list()
+    mlp_control = list(),
+    parallel = TRUE
 ) {
 
-  # ------------------------------------------------------------
-  # Default hyperparameters
-  # ------------------------------------------------------------
+  # Defaults
   default_mlp_control <- list(
     act1 = "Act_Logistic",
     act2 = "Act_Logistic",
@@ -72,44 +81,51 @@ fit_mlp <- function(
     lr2  = 0.001,
     hl1  = 6,
     hl2  = 8,
-    ep1  = 1000,
-    ep2  = 2000
+    ep1  = 300,
+    ep2  = 600
   )
 
-  # Merge defaults with user overrides
   mlp <- modifyList(default_mlp_control, mlp_control)
 
-  # Extract parameters
+  # Extract
   act1 <- mlp$act1; act2 <- mlp$act2
   lr1  <- mlp$lr1;  lr2  <- mlp$lr2
   hl1  <- mlp$hl1;  hl2  <- mlp$hl2
   ep1  <- mlp$ep1;  ep2  <- mlp$ep2
 
-  # ------------------------------------------------------------
-  # Setup
-  # ------------------------------------------------------------
   n.val <- length(vec)
   x <- 1:n.val
   y <- vec
 
-  num_cores <- max(1, parallel::detectCores() - 1)
-  cl <- parallel::makeCluster(num_cores)
-  doSNOW::registerDoSNOW(cl)
+  # -----------------------------
+  # Parallel or serial backend
+  # -----------------------------
+  if (parallel) {
+    num_cores <- max(1, parallel::detectCores() - 1)
+    cl <- parallel::makeCluster(num_cores)
+    doSNOW::registerDoSNOW(cl)
 
-  # ------------------------------------------------------------
+    pb <- txtProgressBar(min = 0, max = n.val - w, style = 3)
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+
+    `%dopar_or_do%` <- `%dopar%`
+  } else {
+    # Serial mode: no cluster, no progress bar
+    opts <- list()
+    `%dopar_or_do%` <- `%do%`
+  }
+
+  # -----------------------------
   # Small-window MLP
-  # ------------------------------------------------------------
-  pb <- txtProgressBar(min = 0, max = n.val - w, style = 3)
-  progress <- function(n) setTxtProgressBar(pb, n)
-  opts <- list(progress = progress)
-
-  message("Fitting small-window MLPs...")
+  # -----------------------------
+  if (parallel) message("Fitting small-window MLPs...")
 
   res.small <- foreach::foreach(
     idx = 1:(n.val - w + 1),
-    .packages = c("RSNNS"),
+    .packages = "RSNNS",
     .options.snow = opts
-  ) %dopar% {
+  ) %dopar_or_do% {
 
     i <- idx
     sub_x <- as.matrix(scale(x[i:(i + w - 1)]))
@@ -124,26 +140,27 @@ fit_mlp <- function(
       hiddenActFunc = act1
     )
 
-    y_hat <- net$fitted.values
-    cbind(sub_x, y_hat, i:(i + w - 1))
+    cbind(sub_x, net$fitted.values, i:(i + w - 1))
   }
 
-  close(pb)
+  if (parallel) close(pb)
 
-  # ------------------------------------------------------------
+  # -----------------------------
   # Large-window MLP
-  # ------------------------------------------------------------
-  pb <- txtProgressBar(min = 0, max = n.val - 2 * w, style = 3)
-  progress <- function(n) setTxtProgressBar(pb, n)
-  opts <- list(progress = progress)
+  # -----------------------------
+  if (parallel) {
+    pb <- txtProgressBar(min = 0, max = n.val - 2 * w, style = 3)
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+  }
 
-  message("Fitting large-window MLPs...")
+  if (parallel) message("Fitting large-window MLPs...")
 
   res.large <- foreach::foreach(
     idx = 1:(n.val - 2 * w + 1),
-    .packages = c("RSNNS"),
+    .packages = "RSNNS",
     .options.snow = opts
-  ) %dopar% {
+  ) %dopar_or_do% {
 
     i <- idx
     sub_x <- as.matrix(scale(x[i:(i + 2 * w - 1)]))
@@ -158,12 +175,13 @@ fit_mlp <- function(
       hiddenActFunc = act2
     )
 
-    y_hat <- net$fitted.values
-    cbind(sub_x, y_hat, i:(i + 2 * w - 1))
+    cbind(sub_x, net$fitted.values, i:(i + 2 * w - 1))
   }
 
-  close(pb)
-  parallel::stopCluster(cl)
+  if (parallel) {
+    close(pb)
+    parallel::stopCluster(cl)
+  }
 
   list(
     small = res.small,

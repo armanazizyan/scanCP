@@ -10,7 +10,7 @@ Authors@R: c(
     )
   )
 Description: Tools for simulating, visualizing, and detecting changepoints 
-    in univariate signals using deep learning and classical statistical 
+    in univariate and multivariate signals using deep learning and classical statistical 
     methods. Includes utilities for generating piecewise signals, applying 
     rolling-window methods, and integrating MLP-based changepoint detection 
     models.
@@ -27,7 +27,7 @@ Imports:
     parallel,
     pracma,
     stats,
-    graphics,
-    magrittr
+    magrittr,
+    tidyr
     
 

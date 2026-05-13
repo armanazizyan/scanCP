@@ -4,7 +4,7 @@
 \alias{fit_mlp}
 \title{Fit Rolling MLP Models for Change Point Detection}
 \usage{
-fit_mlp(vec, w = 100, mlp_control = list())
+fit_mlp(vec, w = 100, mlp_control = list(), parallel = TRUE)
 }
 \arguments{
 \item{vec}{Numeric vector. The input signal.}
@@ -21,7 +21,7 @@ supplied; unspecified values fall back to defaults. Supported fields:
 (default: \code{"Act_Logistic"}).}
 \item{\code{lr1}}{Learning rate for the small-window MLP
 (default: \code{0.001}).}
-\item{\code{lr2}}{Learning rate for the large-window MLP
+\item{\code{lr2}}{Learning learning rate for the large-window MLP
 (default: \code{0.001}).}
 \item{\code{hl1}}{Number of hidden units for the small-window MLP
 (default: \code{6}).}
@@ -32,6 +32,12 @@ supplied; unspecified values fall back to defaults. Supported fields:
 \item{\code{ep2}}{Training epochs for the large-window MLP
 (default: \code{2000}).}
 }}
+
+\item{parallel}{Logical. If \code{TRUE} (default), rolling-window MLPs are
+fitted using parallel computation via \pkg{parallel}, \pkg{foreach},
+and \pkg{doSNOW}. If \code{FALSE}, all computation is performed
+serially. Setting \code{parallel = FALSE} is recommended for CRAN checks
+and for systems where parallel backends are unavailable.}
 }
 \value{
 A list with two elements:
@@ -59,5 +65,8 @@ contain three columns:
 \item original indices
 }
 
-Parallel computation is used to accelerate rolling-window fitting.
+When \code{parallel = TRUE}, a cluster is created using
+\code{parallel::makeCluster()} and progress bars are displayed via
+\pkg{doSNOW}. When \code{parallel = FALSE}, the function falls back to
+serial execution using \code{\%do\%}.
 }

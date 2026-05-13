@@ -21,6 +21,7 @@
 #'   \item{contrib}{Contribution weights (or NULL).}
 #' }
 #'
+#' @importFrom tidyr replace_na
 #' @export
 combine_detectors <- function(
     det.lst,
