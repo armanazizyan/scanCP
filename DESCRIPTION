@@ -6,14 +6,10 @@ Authors@R: c(
     person(
       "Arman", "Azizyan",
       email = "arman.azizyan@gmail.com",
-      role = c("aut", "cre")
-    ),
+      role = c("aut", "cre")),
     person(
       "Abolfazl", "Safikhani",
-      role = "aut"
-    )
-)
-
+      role = "aut"))
 Description: Tools for simulating, visualizing, and detecting changepoints in 
     univariate and multivariate signals using deep learning and classical 
     statistical methods. Includes utilities for generating piecewise signals, 
