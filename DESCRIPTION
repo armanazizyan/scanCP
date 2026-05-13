@@ -1,6 +1,6 @@
 Package: scanCP
 Type: Package
-Title: scanCP: Deep Learning–Based Changepoint Detection with Local Neural Models
+Title: Deep Learning–Based Changepoint Detection with Local Neural Models
 Version: 0.1.0
 Authors@R: c(
     person(
@@ -10,7 +10,7 @@ Authors@R: c(
     person(
       "Abolfazl", "Safikhani",
       role = "aut"))
-Description: scanCP implements a deep learning–based changepoint detection 
+Description: Implementation a deep learning–based changepoint detection 
     algorithm designed for time series with smooth local fluctuations. 
     The method fits localized feed‑forward neural networks to approximate the 
     underlying smooth component and constructs a residual‑based detector that 
