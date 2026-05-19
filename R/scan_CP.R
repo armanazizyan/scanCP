@@ -57,11 +57,11 @@
 #'
 #'
 #' @examples
-#' # Minimal example (safe for CRAN)
+#' # Minimal example
 #' set.seed(1)
-#' y <- c(rnorm(100, 0), rnorm(100, 3))
+#' y <- c(rnorm(200, 0), rnorm(200, 3))
 #'
-#' \dontrun{
+#' \donttest{
 #'   # Full pipeline (parallel disabled for CRAN)
 #'   res <- scan_cp(y, w = 20, parallel = FALSE)
 #'   plot(res$detector, type = "l")

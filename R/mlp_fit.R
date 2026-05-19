@@ -29,9 +29,9 @@
 #'     \item{\code{hl2}}{Number of hidden units for the large-window MLP
 #'       (default: \code{8}).}
 #'     \item{\code{ep1}}{Training epochs for the small-window MLP
-#'       (default: \code{1000}).}
+#'       (default: \code{300}).}
 #'     \item{\code{ep2}}{Training epochs for the large-window MLP
-#'       (default: \code{2000}).}
+#'       (default: \code{600}).}
 #'   }
 #'
 #' @param parallel Logical. If \code{TRUE} (default), rolling-window MLPs are
