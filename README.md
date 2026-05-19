@@ -118,7 +118,7 @@ help(package = "scanCP")
 
 ## License
 
-MIT License © Arman Azizyan
+GPL-2 License © Arman Azizyan
 
 ---
 
