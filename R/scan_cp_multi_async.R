@@ -25,7 +25,7 @@
 #'   of \code{\link{scan_cp}} applied to the corresponding column of \code{Y}.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'   Y <- cbind(
 #'     x1 = c(rnorm(200), rnorm(200, 3)),
 #'     x2 = c(rnorm(200), rnorm(200, -2))

@@ -51,7 +51,7 @@ each column of a multivariate signal. Each dimension is processed
 separately (asynchronously), producing a list of univariate results.
 }
 \examples{
-\dontrun{
+\donttest{
   Y <- cbind(
     x1 = c(rnorm(200), rnorm(200, 3)),
     x2 = c(rnorm(200), rnorm(200, -2))

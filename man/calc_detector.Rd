@@ -60,7 +60,7 @@ Internal parameters \code{a}, \code{b}, and \code{scale_01} are kept
 fixed at their defaults for simplicity and stability.
 }
 \examples{
-\dontrun{
+\donttest{
   fit <- fit_mlp(y, w = 100)
   det <- calc_detector(y, fit, w = 100)
   plot(det, type = "l")
