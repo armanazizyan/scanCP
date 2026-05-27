@@ -4,7 +4,8 @@
 \alias{calc_detector}
 \title{Compute the MLP-Based Changepoint Detector Statistic}
 \usage{
-calc_detector(y, fit_mlp_res, w = 100, ma_window = w, use_abs_det = TRUE)
+calc_detector(y, fit_mlp_res, w = 100,
+              ma_window = w, use_abs_det = TRUE)
 }
 \arguments{
 \item{y}{Numeric vector. Original signal.}
@@ -61,9 +62,9 @@ fixed at their defaults for simplicity and stability.
 }
 \examples{
 \donttest{
+  y <- rnorm(300)
   fit <- fit_mlp(y, w = 100)
   det <- calc_detector(y, fit, w = 100)
-  plot(det, type = "l")
 }
 
 }

@@ -17,9 +17,9 @@
 #'   supplied; unspecified values fall back to defaults. Supported fields:
 #'   \describe{
 #'     \item{\code{act1}}{Activation function for the small-window MLP
-#'       (default: \code{"Act_Logistic"}).}
+#'       (\code{"Act_Logistic"}).}
 #'     \item{\code{act2}}{Activation function for the large-window MLP
-#'       (default: \code{"Act_Logistic"}).}
+#'       (\code{"Act_Logistic"}).}
 #'     \item{\code{lr1}}{Learning rate for the small-window MLP
 #'       (default: \code{0.001}).}
 #'     \item{\code{lr2}}{Learning learning rate for the large-window MLP
@@ -34,7 +34,7 @@
 #'       (default: \code{600}).}
 #'   }
 #'
-#' @param parallel Logical. If \code{TRUE} (default), rolling-window MLPs are
+#' @param parallel Logical. If \code{TRUE}, rolling-window MLPs are
 #'   fitted using parallel computation via \pkg{parallel}, \pkg{foreach},
 #'   and \pkg{doSNOW}. If \code{FALSE}, all computation is performed
 #'   serially. Setting \code{parallel = FALSE} is recommended for CRAN checks
@@ -56,8 +56,9 @@
 #' }
 #'
 #' When \code{parallel = TRUE}, a cluster is created using
-#' \code{parallel::makeCluster()} and progress bars are displayed via
-#' \pkg{doSNOW}. When \code{parallel = FALSE}, the function falls back to
+#' \code{parallel::makeCluster()}.
+#'
+#' When \code{parallel = FALSE}, the function falls back to
 #' serial execution using \code{\%do\%}.
 #'
 #' @import RSNNS
@@ -70,7 +71,7 @@ fit_mlp <- function(
     vec,
     w = 100,
     mlp_control = list(),
-    parallel = TRUE
+    parallel = FALSE
 ) {
 
   # Defaults

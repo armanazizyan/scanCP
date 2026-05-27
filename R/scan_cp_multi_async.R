@@ -11,8 +11,8 @@
 #' @param ma_window Integer. Moving-average smoothing window for the detector.
 #'   Defaults to \code{w}.
 #' @param threshold Either \code{"auto"} (default) or a numeric ECDF threshold.
-#' @param threshold_tails Numeric vector of length 2 giving
-#'   \code{c(left_tail_cutoff, right_tail_cutoff)} for automatic thresholding.
+#' @param threshold_tails Numeric vector of length 2 giving tail cutoff values
+#' for automatic thresholding.
 #'   Defaults to \code{c(0.6, 0.95)}.
 #' @param min_cp_distance Integer. Minimum distance between detected
 #'   changepoints. Defaults to \code{2 * w}.

@@ -22,10 +22,9 @@
 #'   peak detection. Defaults to \code{TRUE}.
 #' @param min_cp_distance Integer. Minimum distance between detected peaks.
 #'   Defaults to \code{2 * w}.
-#' @param margin Integer. Local refinement margin around each changepoint.
-#'   Defaults to \code{floor(w / 2)}.
+#' @param margin Integer. Refinement margin around each changepoint.
+#'   Default \code{floor(w / 2)}.
 #' @param circular Logical. Whether moving-average smoothing wraps around.
-#'   Defaults to \code{FALSE}. Typically left unchanged.
 #'
 #' @return A list containing:
 #' \describe{

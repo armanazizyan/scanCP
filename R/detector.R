@@ -47,10 +47,13 @@
 #'
 #' @examples
 #' \donttest{
+#'   y <- rnorm(300)
 #'   fit <- fit_mlp(y, w = 100)
 #'   det <- calc_detector(y, fit, w = 100)
-#'   plot(det, type = "l")
 #' }
+#'
+#' @usage calc_detector(y, fit_mlp_res, w = 100,
+#'               ma_window = w, use_abs_det = TRUE)
 #'
 #' @export
 calc_detector <- function(

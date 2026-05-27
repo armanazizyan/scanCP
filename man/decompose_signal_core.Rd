@@ -44,11 +44,10 @@ peak detection. Defaults to \code{TRUE}.}
 \item{min_cp_distance}{Integer. Minimum distance between detected peaks.
 Defaults to \code{2 * w}.}
 
-\item{circular}{Logical. Whether moving-average smoothing wraps around.
-Defaults to \code{FALSE}. Typically left unchanged.}
+\item{circular}{Logical. Whether moving-average smoothing wraps around.}
 
-\item{margin}{Integer. Local refinement margin around each changepoint.
-Defaults to \code{floor(w / 2)}.}
+\item{margin}{Integer. Refinement margin around each changepoint.
+Default \code{floor(w / 2)}.}
 }
 \value{
 A list containing:

@@ -27,8 +27,8 @@ Defaults to \code{w}.}
 
 \item{threshold}{Either \code{"auto"} (default) or a numeric ECDF threshold.}
 
-\item{threshold_tails}{Numeric vector of length 2 giving
-\code{c(left_tail_cutoff, right_tail_cutoff)} for automatic thresholding.
+\item{threshold_tails}{Numeric vector of length 2 giving tail cutoff values
+for automatic thresholding.
 Defaults to \code{c(0.6, 0.95)}.}
 
 \item{min_cp_distance}{Integer. Minimum distance between detected

@@ -4,7 +4,9 @@
 \alias{select_best_spike}
 \title{Select the Most Significant Spike in an ECDF Spacing Curve}
 \usage{
-select_best_spike(s, right_tail_cutoff = 0.95, left_tail_cutoff = 0.6)
+select_best_spike(s,
+                right_tail_cutoff = 0.95,
+                left_tail_cutoff  = 0.6)
 }
 \arguments{
 \item{s}{Numeric vector. Smoothed spacing curve.}
@@ -27,7 +29,7 @@ determine a significance threshold for changepoint selection.
 \details{
 Uses \code{pracma::findpeaks()} to identify local maxima. Prominence is computed
 as:
-\deqn{ peak\_height - max(left\_base, right\_base) }
+\deqn{ peak_{height} - \max(left_{base}, right_{base}) }{}
 
 The spike with the largest prominence within the allowed ECDF range is
 selected.

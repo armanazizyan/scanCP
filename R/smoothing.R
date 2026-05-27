@@ -20,7 +20,6 @@
 #' @examples
 #' x <- rnorm(100)
 #' y <- ma(x, n = 5)
-#' plot(y, type = "l")
 #'
 #' @importFrom stats filter
 #' @export

@@ -11,17 +11,17 @@
 #' @param n Integer. Length of the signal.
 #' @param domain Numeric vector of length 2 giving the range of the time axis.
 #' @param changepoints_idx Integer vector of changepoint locations (indices).
-#'   Must lie strictly inside \code{(1, n)}.
+#'   Must lie strictly inside \eqn{(1, n)}.
 #' @param shift_sizes Numeric vector giving the mean level of each segment.
 #'   Must have length equal to \code{length(changepoints_idx) + 1}.
 #' @param noise_sd Numeric. Standard deviation of the Gaussian noise.
-#' @param smooth_fun Function. A function \code{f(t)} defining the smooth trend.
+#' @param smooth_fun Function. A function \eqn{f(t)} defining the smooth trend.
 #' @param seed Optional integer. If supplied, sets the random seed for reproducibility.
 #'
 #' @return A list with components:
 #' \describe{
-#'   \item{t}{Time grid of length \code{n}.}
-#'   \item{smooth}{Smooth component \code{f(t)}.}
+#'   \item{t}{Time grid of length \eqn{n}.}
+#'   \item{smooth}{Smooth component \eqn{f(t)}.}
 #'   \item{step}{Piecewise-constant step component.}
 #'   \item{z}{Final noisy signal.}
 #'   \item{changepoints_idx}{Sorted changepoint indices.}
@@ -37,7 +37,6 @@
 #'   noise_sd = 0.05,
 #'   seed = 123
 #' )
-#' plot(sim$t, sim$z, type = "l")
 #'
 #' @export
 simulate_piecewise_signal_idx <- function(

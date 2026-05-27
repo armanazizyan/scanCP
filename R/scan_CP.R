@@ -26,7 +26,7 @@
 #' @param mlp_control A named list of hyperparameters passed directly to
 #'   \code{\link{fit_mlp}}. Any subset may be supplied; unspecified values
 #'   fall back to defaults defined in \code{fit_mlp()}.
-#' @param parallel Logical. If \code{TRUE} (default), rolling MLP fitting is
+#' @param parallel Logical. If \code{TRUE}, rolling MLP fitting is
 #'   performed in parallel via \code{\link{fit_mlp}}. If \code{FALSE}, all
 #'   computation is performed serially. Setting \code{parallel = FALSE} is
 #'   recommended for CRAN checks and for systems without parallel support.
@@ -64,7 +64,6 @@
 #' \donttest{
 #'   # Full pipeline (parallel disabled for CRAN)
 #'   res <- scan_cp(y, w = 20, parallel = FALSE)
-#'   plot(res$detector, type = "l")
 #' }
 #'
 #'
@@ -79,7 +78,7 @@ scan_cp <- function(
     margin = floor(w / 2),
     use_abs_det = TRUE,
     mlp_control = list(),
-    parallel = TRUE
+    parallel = FALSE
 ) {
 
   # 1. Fit rolling MLPs
