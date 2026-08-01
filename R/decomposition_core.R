@@ -143,8 +143,8 @@ decompose_signal_core <- function(
         # Compute AUC for each detected peak
         auc_results <- apply(l.max, 1, function(row) {
           DescTools::AUC(
-            x = 1:length(sm.det),
-            y = sm.det,
+            x = 1:(length(sm.det)+1),
+            y = c(sm.det,0),
             from = row[3],
             to = row[4]
           )

@@ -7,7 +7,7 @@
 scan_cp(
   y,
   w = 100,
-  ma_window = w,
+  smoothing_window = NULL,
   threshold = "auto",
   threshold_tails = c(0.2, 0.95),
   min_cp_distance = 2 * w,
@@ -24,8 +24,9 @@ scan_cp(
 \code{\link{fit_mlp}}. The large-window MLP automatically uses
 window size \code{2w}.}
 
-\item{ma_window}{Integer. Window size for the moving-average smoothing
-applied to the detector statistic. Defaults to \code{w}.}
+\item{smoothing_window}{Integer. Window size for the moving-average smoothing
+applied to the detector statistic and in the decomposition. Defaults to
+\code{w}. This parameter replaces \code{ma_window} for simplicity.}
 
 \item{threshold}{Character or numeric. If \code{"auto"}, the threshold is
 selected automatically using spacing-curve analysis. If \code{"auc"},
