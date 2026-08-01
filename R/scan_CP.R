@@ -12,8 +12,9 @@
 #' @param ma_window Integer. Window size for the moving-average smoothing
 #'   applied to the detector statistic. Defaults to \code{w}.
 #' @param threshold Character or numeric. If \code{"auto"}, the threshold is
-#'   selected automatically using spacing-curve analysis. Otherwise, a numeric
-#'   threshold may be supplied directly.
+#'   selected automatically using spacing-curve analysis. If \code{"auc"},
+#'   changepoints are selected via k-means clustering of AUC values.
+#'   Otherwise, a numeric threshold may be supplied directly.
 #' @param threshold_tails Numeric vector of length 2. Left and right tail
 #'   cutoffs used when estimating the automatic threshold. Defaults to
 #'   \code{c(0.2, 0.95)}.
