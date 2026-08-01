@@ -16,8 +16,10 @@
 #'   threshold selection. Defaults to \code{0.95}.
 #' @param left_tail_cutoff Numeric. Lower ECDF cutoff for automatic
 #'   threshold selection. Defaults to \code{0.6}.
-#' @param threshold Either \code{"auto"} (default) or a numeric ECDF
-#'   threshold for selecting significant peaks.
+#' @param threshold Either \code{"auto"} (default), \code{"auc"}, or a numeric ECDF
+#'   threshold for selecting significant peaks. If \code{"auc"}, changepoints
+#'   are selected based on k-means clustering of AUC values under the detector
+#'   curve for each peak's interval.
 #' @param use_abs_det Logical. Whether to use \code{abs(detector)} before
 #'   peak detection. Defaults to \code{TRUE}.
 #' @param min_cp_distance Integer. Minimum distance between detected peaks.
@@ -48,6 +50,7 @@
 #'
 #' @importFrom pracma findpeaks
 #' @importFrom stats ecdf median kmeans rnorm
+#' @importFrom DescTools AUC
 #' @export
 decompose_signal_core <- function(
     y,
@@ -109,29 +112,67 @@ decompose_signal_core <- function(
   ecdf_vals <- f_det(l.max[, 1])
   l.max <- cbind(l.max, ecdf_vals)  # col 5 = ECDF
 
-  # --- 5. Spacing curve (only if needed) -------------------------------------
+  # --- 5. Threshold selection ---------------------------------------------------
 
-  if (is.character(threshold) && threshold == "auto") {
-    x.det <- sort(sm.det)
-    dx <- diff(x.det)
-    s <- as.numeric(ma(dx, n = ma_window, circular = circular))
-    s[is.na(s)] <- 0
+  if (is.character(threshold)) {
+    if (threshold == "auto") {
+      # Auto threshold via spacing curve
+      x.det <- sort(sm.det)
+      dx <- diff(x.det)
+      s <- as.numeric(ma(dx, n = ma_window, circular = circular))
+      s[is.na(s)] <- 0
 
-    thr <- select_best_spike(
-      s,
-      right_tail_cutoff = right_tail_cutoff,
-      left_tail_cutoff  = left_tail_cutoff
-    )
+      thr <- select_best_spike(
+        s,
+        right_tail_cutoff = right_tail_cutoff,
+        left_tail_cutoff  = left_tail_cutoff
+      )
+      cps_raw <- l.max[l.max[, 5] >= thr, , drop = FALSE]
+
+    } else if (threshold == "auc") {
+      # AUC-based threshold selection via k-means clustering
+      s <- NULL
+
+      if (nrow(l.max) == 0) {
+        cps_raw <- l.max
+      } else if (nrow(l.max) == 1) {
+        # If only one peak, include it
+        cps_raw <- l.max[2]
+        thr <- NA
+      } else {
+        # Compute AUC for each detected peak
+        auc_results <- apply(l.max, 1, function(row) {
+          DescTools::AUC(
+            x = 1:(length(sm.det)+1),
+            y = c(sm.det,0),
+            from = row[3],
+            to = row[4]
+          )
+        })
+
+        # Cluster AUC values using k-means
+        km <- kmeans(auc_results, centers = 2)
+
+        # Map clusters so that cluster 1 corresponds to higher AUC center
+        mapping <- if (km$centers[1] > km$centers[2]) c(1, 2) else c(2, 1)
+        cps_cluster <- mapping[km$cluster]
+
+        # Select peaks in cluster 1 (higher AUC)
+        cps_raw <- l.max[cps_cluster == 1, , drop = FALSE]
+        thr <- NA
+      }
+    } else {
+      stop("threshold must be 'auto', 'auc', or numeric.")
+    }
   } else if (is.numeric(threshold)) {
     thr <- threshold
     s <- NULL
+    cps_raw <- l.max[l.max[, 5] >= thr, , drop = FALSE]
   } else {
-    stop("threshold must be 'auto' or numeric.")
+    stop("threshold must be 'auto', 'auc', or numeric.")
   }
 
   # --- 6. Changepoints (raw) --------------------------------------------------
-
-  cps_raw <- l.max[l.max[, 5] >= thr, , drop = FALSE]
 
   if (nrow(cps_raw) == 0) {
     return(list(
