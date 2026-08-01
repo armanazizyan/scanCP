@@ -35,8 +35,10 @@ threshold selection. Defaults to \code{0.95}.}
 \item{left_tail_cutoff}{Numeric. Lower ECDF cutoff for automatic
 threshold selection. Defaults to \code{0.6}.}
 
-\item{threshold}{Either \code{"auto"} (default) or a numeric ECDF
-threshold for selecting significant peaks.}
+\item{threshold}{Either \code{"auto"} (default), \code{"auc"}, or a numeric ECDF
+threshold for selecting significant peaks. If \code{"auc"}, changepoints
+are selected based on k-means clustering of AUC values under the detector
+curve for each peak's interval.}
 
 \item{use_abs_det}{Logical. Whether to use \code{abs(detector)} before
 peak detection. Defaults to \code{TRUE}.}
