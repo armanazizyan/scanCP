@@ -137,7 +137,7 @@ decompose_signal_core <- function(
         cps_raw <- l.max
       } else if (nrow(l.max) == 1) {
         # If only one peak, include it
-        cps_raw <- l.max[2]
+        cps_raw <- l.max[,2]
         thr <- NA
       } else {
         # Compute AUC for each detected peak

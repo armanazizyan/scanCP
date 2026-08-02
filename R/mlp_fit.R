@@ -98,90 +98,122 @@ fit_mlp <- function(
   x <- 1:n.val
   y <- vec
 
-  # -----------------------------
-  # Parallel or serial backend
-  # -----------------------------
+  # =====================================================
+  # Parallel vs Serial execution
+  # =====================================================
+
   if (parallel) {
+    # ===== PARALLEL MODE =====
     num_cores <- max(1, parallel::detectCores() - 1)
     cl <- parallel::makeCluster(num_cores)
     doSNOW::registerDoSNOW(cl)
 
+    # Small-window MLP
+    message("Fitting small-window MLPs...")
     pb <- txtProgressBar(min = 0, max = n.val - w, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
 
-    `%dopar_or_do%` <- `%dopar%`
-  } else {
-    # Serial mode: no cluster, no progress bar
-    opts <- list()
-    `%dopar_or_do%` <- `%do%`
-  }
+    res.small <- foreach::foreach(
+      idx = 1:(n.val - w + 1),
+      .packages = "RSNNS",
+      .options.snow = opts
+    ) %dopar% {
 
-  # -----------------------------
-  # Small-window MLP
-  # -----------------------------
-  if (parallel) message("Fitting small-window MLPs...")
+      i <- idx
+      sub_x <- as.matrix(scale(x[i:(i + w - 1)]))
+      sub_y <- as.matrix(y[i:(i + w - 1)])
 
-  res.small <- foreach::foreach(
-    idx = 1:(n.val - w + 1),
-    .packages = "RSNNS",
-    .options.snow = opts
-  ) %dopar_or_do% {
+      net <- RSNNS::mlp(
+        sub_x, sub_y,
+        size = hl1,
+        learnFuncParams = lr1,
+        maxit = ep1,
+        linOut = TRUE,
+        hiddenActFunc = act1
+      )
 
-    i <- idx
-    sub_x <- as.matrix(scale(x[i:(i + w - 1)]))
-    sub_y <- as.matrix(y[i:(i + w - 1)])
+      cbind(sub_x, net$fitted.values, i:(i + w - 1))
+    }
+    close(pb)
 
-    net <- RSNNS::mlp(
-      sub_x, sub_y,
-      size = hl1,
-      learnFuncParams = lr1,
-      maxit = ep1,
-      linOut = TRUE,
-      hiddenActFunc = act1
-    )
-
-    cbind(sub_x, net$fitted.values, i:(i + w - 1))
-  }
-
-  if (parallel) close(pb)
-
-  # -----------------------------
-  # Large-window MLP
-  # -----------------------------
-  if (parallel) {
+    # Large-window MLP
+    message("Fitting large-window MLPs...")
     pb <- txtProgressBar(min = 0, max = n.val - 2 * w, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
-  }
 
-  if (parallel) message("Fitting large-window MLPs...")
+    res.large <- foreach::foreach(
+      idx = 1:(n.val - 2 * w + 1),
+      .packages = "RSNNS",
+      .options.snow = opts
+    ) %dopar% {
 
-  res.large <- foreach::foreach(
-    idx = 1:(n.val - 2 * w + 1),
-    .packages = "RSNNS",
-    .options.snow = opts
-  ) %dopar_or_do% {
+      i <- idx
+      sub_x <- as.matrix(scale(x[i:(i + 2 * w - 1)]))
+      sub_y <- as.matrix(y[i:(i + 2 * w - 1)])
 
-    i <- idx
-    sub_x <- as.matrix(scale(x[i:(i + 2 * w - 1)]))
-    sub_y <- as.matrix(y[i:(i + 2 * w - 1)])
+      net <- RSNNS::mlp(
+        sub_x, sub_y,
+        size = hl2,
+        learnFuncParams = lr2,
+        maxit = ep2,
+        linOut = TRUE,
+        hiddenActFunc = act2
+      )
 
-    net <- RSNNS::mlp(
-      sub_x, sub_y,
-      size = hl2,
-      learnFuncParams = lr2,
-      maxit = ep2,
-      linOut = TRUE,
-      hiddenActFunc = act2
-    )
-
-    cbind(sub_x, net$fitted.values, i:(i + 2 * w - 1))
-  }
-
-  if (parallel) {
+      cbind(sub_x, net$fitted.values, i:(i + 2 * w - 1))
+    }
     close(pb)
     parallel::stopCluster(cl)
+
+  } else {
+    # ===== SERIAL MODE =====
+    message("Fitting small-window MLPs...")
+    pb <- txtProgressBar(min = 0, max = n.val - w, style = 3)
+    res.small <- list()
+
+    for (idx in 1:(n.val - w + 1)) {
+      i <- idx
+      sub_x <- as.matrix(scale(x[i:(i + w - 1)]))
+      sub_y <- as.matrix(y[i:(i + w - 1)])
+
+      net <- RSNNS::mlp(
+        sub_x, sub_y,
+        size = hl1,
+        learnFuncParams = lr1,
+        maxit = ep1,
+        linOut = TRUE,
+        hiddenActFunc = act1
+      )
+
+      res.small[[idx]] <- cbind(sub_x, net$fitted.values, i:(i + w - 1))
+      setTxtProgressBar(pb, idx)
+    }
+    close(pb)
+
+    message("Fitting large-window MLPs...")
+    pb <- txtProgressBar(min = 0, max = n.val - 2 * w, style = 3)
+    res.large <- list()
+
+    for (idx in 1:(n.val - 2 * w + 1)) {
+      i <- idx
+      sub_x <- as.matrix(scale(x[i:(i + 2 * w - 1)]))
+      sub_y <- as.matrix(y[i:(i + 2 * w - 1)])
+
+      net <- RSNNS::mlp(
+        sub_x, sub_y,
+        size = hl2,
+        learnFuncParams = lr2,
+        maxit = ep2,
+        linOut = TRUE,
+        hiddenActFunc = act2
+      )
+
+      res.large[[idx]] <- cbind(sub_x, net$fitted.values, i:(i + 2 * w - 1))
+      setTxtProgressBar(pb, idx)
+    }
+    close(pb)
   }
 
   list(
