@@ -143,34 +143,35 @@ decompose_signal_core <- function(
         # Compute AUC for each detected peak
         auc_results <- apply(l.max, 1, function(row) {
           DescTools::AUC(
-            x = 1:(length(sm.det)+1),
-            y = c(sm.det,0),
+            x = 1:(length(sm.det)),
+            y = c(sm.det),
             from = row[3],
             to = row[4]
           )
         })
 
         # Cluster AUC values using k-means
-        d <- dist(auc_results)
-        hc <- hclust(d, method = "ward.D2")
-        clusters <- cutree(hc, k = 2)
-        # Ensure cluster label 1 corresponds to the higher mean group
-        cluster_means <- tapply(auc_results, clusters, mean)
-        high_cluster_id <- which.max(cluster_means)
-
-        # Vector flagging true signals (TRUE for high cluster, FALSE for low)
-        is_significant <- (clusters == high_cluster_id)
-
-        # km <- kmeans(c(auc_results,0), centers = 2)
+        # d <- dist(c(auc_results))
+        # hc <- hclust(d, method = "ward.D2")
+        # clusters <- cutree(hc, k = 2)
+        # # Ensure cluster label 1 corresponds to the higher mean group
+        # cluster_means <- tapply(auc_results, clusters, mean)
+        # high_cluster_id <- which.max(cluster_means)
         #
-        # # Map clusters so that cluster 1 corresponds to higher AUC center
-        # mapping <- if (km$centers[1] > km$centers[2]) c(1, 2) else c(2, 1)
-        # cps_cluster <- mapping[km$cluster]
-        #
-        # # Select peaks in cluster 1 (higher AUC)
-        # cps_raw <- l.max[cps_cluster == 1, , drop = FALSE]
+        # # Vector flagging true signals (TRUE for high cluster, FALSE for low)
+        # is_significant <- (clusters == high_cluster_id)
+        # cps_raw <- lmax[is_significant, , drop = F]
 
-        cps_raw <- lmax[is_significant, , drop = F]
+        km <- kmeans(c(auc_results,0), centers = 2)
+
+        # Map clusters so that cluster 1 corresponds to higher AUC center
+        mapping <- if (km$centers[1] > km$centers[2]) c(1, 2) else c(2, 1)
+        cps_cluster <- mapping[km$cluster]
+
+        # Select peaks in cluster 1 (higher AUC)
+        cps_raw <- l.max[cps_cluster == 1, , drop = FALSE]
+
+
         thr <- NA
       }
     } else {
