@@ -169,7 +169,7 @@ decompose_signal_core <- function(
         cps_cluster <- mapping[km$cluster]
 
         # Select peaks in cluster 1 (higher AUC)
-        cps_raw <- l.max[cps_cluster == 1, , drop = FALSE]
+        cps_raw <- l.max[cps_cluster[1:length(auc_results)] == 1, , drop = FALSE]
 
 
         thr <- NA
