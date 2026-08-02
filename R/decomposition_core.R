@@ -74,7 +74,7 @@ decompose_signal_core <- function(
   n <- length(y)
 
   if (is.null(min_cp_distance))
-    min_cp_distance <- 2 * w
+    min_cp_distance <- 1.5 * w
 
   if (is.null(margin))
     margin <- floor(w / 2)
@@ -137,7 +137,7 @@ decompose_signal_core <- function(
         cps_raw <- l.max
       } else if (nrow(l.max) == 1) {
         # If only one peak, include it
-        cps_raw <- l.max[,2]
+        cps_raw <- l.max
         thr <- NA
       } else {
         # Compute AUC for each detected peak
@@ -151,14 +151,26 @@ decompose_signal_core <- function(
         })
 
         # Cluster AUC values using k-means
-        km <- kmeans(auc_results, centers = 2)
+        d <- dist(auc_results)
+        hc <- hclust(d, method = "ward.D2")
+        clusters <- cutree(hc, k = 2)
+        # Ensure cluster label 1 corresponds to the higher mean group
+        cluster_means <- tapply(auc_results, clusters, mean)
+        high_cluster_id <- which.max(cluster_means)
 
-        # Map clusters so that cluster 1 corresponds to higher AUC center
-        mapping <- if (km$centers[1] > km$centers[2]) c(1, 2) else c(2, 1)
-        cps_cluster <- mapping[km$cluster]
+        # Vector flagging true signals (TRUE for high cluster, FALSE for low)
+        is_significant <- (clusters == high_cluster_id)
 
-        # Select peaks in cluster 1 (higher AUC)
-        cps_raw <- l.max[cps_cluster == 1, , drop = FALSE]
+        # km <- kmeans(c(auc_results,0), centers = 2)
+        #
+        # # Map clusters so that cluster 1 corresponds to higher AUC center
+        # mapping <- if (km$centers[1] > km$centers[2]) c(1, 2) else c(2, 1)
+        # cps_cluster <- mapping[km$cluster]
+        #
+        # # Select peaks in cluster 1 (higher AUC)
+        # cps_raw <- l.max[cps_cluster == 1, , drop = FALSE]
+
+        cps_raw <- lmax[is_significant, , drop = F]
         thr <- NA
       }
     } else {
