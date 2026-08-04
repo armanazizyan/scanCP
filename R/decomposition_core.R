@@ -20,9 +20,10 @@
 #'   threshold for selecting significant peaks. If \code{"auc"}, changepoints
 #'   are selected based on net AUC (area above baseline) with energy-based
 #'   filtering.
-#' @param auc_energy_threshold Numeric. When \code{threshold = "auc"}, peaks
+#' @param auc_energy_threshold Numeric or NULL. When \code{threshold = "auc"}, peaks
 #'   with net AUC values less than \code{auc_energy_threshold * sum(all AUC values)}
-#'   are filtered out. Defaults to \code{0.025} (2.5% of total energy).
+#'   are filtered out. If NULL (default), computed as \code{1 / k} where \code{k}
+#'   is the number of detected peaks, providing an adaptive threshold.
 #' @param use_abs_det Logical. Whether to use \code{abs(detector)} before
 #'   peak detection. Defaults to \code{TRUE}.
 #' @param min_cp_distance Integer. Minimum distance between detected peaks.
@@ -63,7 +64,7 @@ decompose_signal_core <- function(
     right_tail_cutoff = 0.95,
     left_tail_cutoff  = 0.6,
     threshold = "auto",
-    auc_energy_threshold = 0.025,
+    auc_energy_threshold = NULL,
     use_abs_det = TRUE,
     min_cp_distance = NULL,
     circular = FALSE,
@@ -163,6 +164,13 @@ decompose_signal_core <- function(
         net_aucs <- vapply(1:nrow(l.max), function(i) {
           calc_net_auc(l.max[i, 3], l.max[i, 4], sm.det)
         }, FUN.VALUE = numeric(1))
+
+        # Compute adaptive threshold if not provided
+        # Default: 1/k where k is the number of detected peaks
+        k <- nrow(l.max)
+        if (is.null(auc_energy_threshold)) {
+          auc_energy_threshold <- 1 / (2*k)
+        }
 
         # Energy-based selection: filter out peaks below threshold
         # Threshold = auc_energy_threshold * sum of all net AUCs

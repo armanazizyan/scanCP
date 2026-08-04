@@ -19,9 +19,10 @@
 #' @param threshold_tails Numeric vector of length 2. Left and right tail
 #'   cutoffs used when estimating the automatic threshold. Defaults to
 #'   \code{c(0.2, 0.95)}.
-#' @param auc_energy_threshold Numeric. When \code{threshold = "auc"}, peaks
+#' @param auc_energy_threshold Numeric or NULL. When \code{threshold = "auc"}, peaks
 #'   with net AUC values less than \code{auc_energy_threshold * sum(all AUC values)}
-#'   are filtered out. Defaults to \code{0.025} (2.5% of total energy).
+#'   are filtered out. If NULL (default), computed as \code{1 / k} where \code{k}
+#'   is the number of detected peaks, providing an adaptive threshold.
 #' @param min_cp_distance Integer. Minimum separation (in indices) between
 #'   detected changepoints. Defaults to \code{2 * w}.
 #' @param margin Integer. Margin used during local refinement of changepoint
@@ -79,7 +80,7 @@ scan_cp <- function(
     smoothing_window = NULL,
     threshold = "auto",
     threshold_tails = c(0.2, 0.95),
-    auc_energy_threshold = 0.025,
+    auc_energy_threshold = NULL,
     min_cp_distance = 2 * w,
     margin = floor(w / 2),
     use_abs_det = TRUE,
