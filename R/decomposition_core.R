@@ -18,8 +18,11 @@
 #'   threshold selection. Defaults to \code{0.6}.
 #' @param threshold Either \code{"auto"} (default), \code{"auc"}, or a numeric ECDF
 #'   threshold for selecting significant peaks. If \code{"auc"}, changepoints
-#'   are selected based on k-means clustering of AUC values under the detector
-#'   curve for each peak's interval.
+#'   are selected based on net AUC (area above baseline) with energy-based
+#'   filtering.
+#' @param auc_energy_threshold Numeric. When \code{threshold = "auc"}, peaks
+#'   with net AUC values less than \code{auc_energy_threshold * sum(all AUC values)}
+#'   are filtered out. Defaults to \code{0.025} (2.5% of total energy).
 #' @param use_abs_det Logical. Whether to use \code{abs(detector)} before
 #'   peak detection. Defaults to \code{TRUE}.
 #' @param min_cp_distance Integer. Minimum distance between detected peaks.
@@ -60,6 +63,7 @@ decompose_signal_core <- function(
     right_tail_cutoff = 0.95,
     left_tail_cutoff  = 0.6,
     threshold = "auto",
+    auc_energy_threshold = 0.025,
     use_abs_det = TRUE,
     min_cp_distance = NULL,
     circular = FALSE,
@@ -130,7 +134,7 @@ decompose_signal_core <- function(
       cps_raw <- l.max[l.max[, 5] >= thr, , drop = FALSE]
 
     } else if (threshold == "auc") {
-      # AUC-based threshold selection via k-means clustering
+      # AUC-based threshold selection using net area above baseline + energy method
       s <- NULL
 
       if (nrow(l.max) == 0) {
@@ -140,38 +144,41 @@ decompose_signal_core <- function(
         cps_raw <- l.max
         thr <- NA
       } else {
-        # Compute AUC for each detected peak
-        auc_results <- apply(l.max, 1, function(row) {
-          DescTools::AUC(
-            x = 1:(length(sm.det)),
-            y = c(sm.det),
-            from = row[3],
-            to = row[4]
-          )
-        })
+        # Helper function: calculate net AUC (area above baseline)
+        calc_net_auc <- function(start_idx, end_idx, y) {
+          x_vals <- start_idx:end_idx
+          y_vals <- y[x_vals]
 
-        # Cluster AUC values using k-means
-        # d <- dist(c(auc_results))
-        # hc <- hclust(d, method = "ward.D2")
-        # clusters <- cutree(hc, k = 2)
-        # # Ensure cluster label 1 corresponds to the higher mean group
-        # cluster_means <- tapply(auc_results, clusters, mean)
-        # high_cluster_id <- which.max(cluster_means)
-        #
-        # # Vector flagging true signals (TRUE for high cluster, FALSE for low)
-        # is_significant <- (clusters == high_cluster_id)
-        # cps_raw <- lmax[is_significant, , drop = F]
+          # Line connecting left base to right base
+          baseline <- seq(y_vals[1], y_vals[length(y_vals)], length.out = length(y_vals))
 
-        km <- kmeans(c(auc_results,0), centers = 2)
+          # Net area above baseline
+          net_y <- pmax(0, y_vals - baseline)
 
-        # Map clusters so that cluster 1 corresponds to higher AUC center
-        mapping <- if (km$centers[1] > km$centers[2]) c(1, 2) else c(2, 1)
-        cps_cluster <- mapping[km$cluster]
+          # Trapezoid rule integration
+          sum(diff(x_vals) * (net_y[-1] + net_y[-length(net_y)]) / 2)
+        }
 
-        # Select peaks in cluster 1 (higher AUC)
-        cps_raw <- l.max[cps_cluster[1:length(auc_results)] == 1, , drop = FALSE]
+        # Compute net AUC for each detected peak
+        net_aucs <- vapply(1:nrow(l.max), function(i) {
+          calc_net_auc(l.max[i, 3], l.max[i, 4], sm.det)
+        }, FUN.VALUE = numeric(1))
 
+        # Energy-based selection: filter out peaks below threshold
+        # Threshold = auc_energy_threshold * sum of all net AUCs
+        total_energy <- sum(net_aucs)
+        energy_cutoff <- auc_energy_threshold * total_energy
 
+        # Select peaks above the energy cutoff
+        significant_indices <- which(net_aucs > energy_cutoff)
+
+        if (length(significant_indices) == 0) {
+          # If no peaks pass the filter, include at least the top peak
+          significant_indices <- which.max(net_aucs)
+        }
+
+        # Select peaks with significant AUC
+        cps_raw <- l.max[significant_indices, , drop = FALSE]
         thr <- NA
       }
     } else {

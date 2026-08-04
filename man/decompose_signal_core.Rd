@@ -12,6 +12,7 @@ decompose_signal_core(
   right_tail_cutoff = 0.95,
   left_tail_cutoff = 0.6,
   threshold = "auto",
+  auc_energy_threshold = 0.025,
   use_abs_det = TRUE,
   min_cp_distance = NULL,
   circular = FALSE,
@@ -37,8 +38,12 @@ threshold selection. Defaults to \code{0.6}.}
 
 \item{threshold}{Either \code{"auto"} (default), \code{"auc"}, or a numeric ECDF
 threshold for selecting significant peaks. If \code{"auc"}, changepoints
-are selected based on k-means clustering of AUC values under the detector
-curve for each peak's interval.}
+are selected based on net AUC (area above baseline) with energy-based
+filtering.}
+
+\item{auc_energy_threshold}{Numeric. When \code{threshold = "auc"}, peaks
+with net AUC values less than \code{auc_energy_threshold * sum(all AUC values)}
+are filtered out. Defaults to \code{0.025} (2.5\% of total energy).}
 
 \item{use_abs_det}{Logical. Whether to use \code{abs(detector)} before
 peak detection. Defaults to \code{TRUE}.}

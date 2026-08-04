@@ -10,6 +10,7 @@ scan_cp(
   smoothing_window = NULL,
   threshold = "auto",
   threshold_tails = c(0.2, 0.95),
+  auc_energy_threshold = 0.025,
   min_cp_distance = 2 * w,
   margin = floor(w/2),
   use_abs_det = TRUE,
@@ -30,12 +31,16 @@ applied to the detector statistic and in the decomposition. Defaults to
 
 \item{threshold}{Character or numeric. If \code{"auto"}, the threshold is
 selected automatically using spacing-curve analysis. If \code{"auc"},
-changepoints are selected via k-means clustering of AUC values.
+changepoints are selected via net AUC with percentile-based filtering.
 Otherwise, a numeric threshold may be supplied directly.}
 
 \item{threshold_tails}{Numeric vector of length 2. Left and right tail
 cutoffs used when estimating the automatic threshold. Defaults to
 \code{c(0.2, 0.95)}.}
+
+\item{auc_energy_threshold}{Numeric. When \code{threshold = "auc"}, peaks
+with net AUC values less than \code{auc_energy_threshold * sum(all AUC values)}
+are filtered out. Defaults to \code{0.025} (2.5\% of total energy).}
 
 \item{min_cp_distance}{Integer. Minimum separation (in indices) between
 detected changepoints. Defaults to \code{2 * w}.}

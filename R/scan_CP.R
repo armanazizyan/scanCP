@@ -14,11 +14,14 @@
 #'   \code{w}. This parameter replaces \code{ma_window} for simplicity.
 #' @param threshold Character or numeric. If \code{"auto"}, the threshold is
 #'   selected automatically using spacing-curve analysis. If \code{"auc"},
-#'   changepoints are selected via k-means clustering of AUC values.
+#'   changepoints are selected via net AUC with percentile-based filtering.
 #'   Otherwise, a numeric threshold may be supplied directly.
 #' @param threshold_tails Numeric vector of length 2. Left and right tail
 #'   cutoffs used when estimating the automatic threshold. Defaults to
 #'   \code{c(0.2, 0.95)}.
+#' @param auc_energy_threshold Numeric. When \code{threshold = "auc"}, peaks
+#'   with net AUC values less than \code{auc_energy_threshold * sum(all AUC values)}
+#'   are filtered out. Defaults to \code{0.025} (2.5% of total energy).
 #' @param min_cp_distance Integer. Minimum separation (in indices) between
 #'   detected changepoints. Defaults to \code{2 * w}.
 #' @param margin Integer. Margin used during local refinement of changepoint
@@ -76,6 +79,7 @@ scan_cp <- function(
     smoothing_window = NULL,
     threshold = "auto",
     threshold_tails = c(0.2, 0.95),
+    auc_energy_threshold = 0.025,
     min_cp_distance = 2 * w,
     margin = floor(w / 2),
     use_abs_det = TRUE,
@@ -107,6 +111,7 @@ scan_cp <- function(
     w = w,
     ma_window = smoothing_window,
     threshold = threshold,
+    auc_energy_threshold = auc_energy_threshold,
     right_tail_cutoff = threshold_tails[2],
     left_tail_cutoff  = threshold_tails[1],
     min_cp_distance = min_cp_distance,
