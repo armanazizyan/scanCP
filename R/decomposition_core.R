@@ -169,7 +169,7 @@ decompose_signal_core <- function(
         # Default: 1/k where k is the number of detected peaks
         k <- nrow(l.max)
         if (is.null(auc_energy_threshold)) {
-          auc_energy_threshold <- 1 / (2*k)
+          auc_energy_threshold <- 1 / (k)
         }
 
         # Energy-based selection: filter out peaks below threshold
